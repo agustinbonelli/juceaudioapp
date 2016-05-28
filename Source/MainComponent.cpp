@@ -33,7 +33,7 @@ MainContentComponent::MainContentComponent()
 	volumeslider.setSliderStyle(Slider::LinearVertical);
 	volumeslider.setTextBoxStyle(Slider::TextBoxAbove,true,100,20);
 	addAndMakeVisible(&volumeslider);
-	setSize (800, 600);
+	setSize (1000, 1000);
 	setAudioChannels (0, 2);
 }
 
@@ -64,7 +64,11 @@ void MainContentComponent::getNextAudioBlock (const AudioSourceChannelInfo& buff
 
 void MainContentComponent::resized()
 {
-	volumeslider.setBounds(10,10,20,90);
+	int x = 10;
+	int y = 10;
+	int windowWidth = getWidth();
+	int windowHeight = getHeight();
+	volumeslider.setBounds(x,y,windowWidth-x,windowHeight-y);
 }
 
 Component* createMainContentComponent()     { return new MainContentComponent(); }
