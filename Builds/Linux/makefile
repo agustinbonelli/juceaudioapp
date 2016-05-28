@@ -47,18 +47,18 @@ OBJECTS := \
 .PHONY: clean
 
 $(OUTDIR)/$(TARGET): $(OBJECTS) $(LDDEPS) $(RESOURCES)
-	@echo Linking SimpleSynthNoisetutorial
+	@echo Linking $(TARGET)
 	-@mkdir -p $(BINDIR)
 	-@mkdir -p $(LIBDIR)
 	-@mkdir -p $(OUTDIR)
 	@$(BLDCMD)
 
 clean:
-	@echo Cleaning SimpleSynthNoisetutorial
+	@echo Cleaning $(TARGET)
 	@$(CLEANCMD)
 
 strip:
-	@echo Stripping SimpleSynthNoisetutorial
+	@echo Stripping $(TARGET)
 	-@strip --strip-unneeded $(OUTDIR)/$(TARGET)
 
 $(OBJDIR)/MainComponent.o: ../../Source/MainComponent.cpp

@@ -22,12 +22,17 @@ public:
 
 	void getNextAudioBlock (const AudioSourceChannelInfo& bufferToFill);
 
+	void resized();
 private:
+	Slider volumeslider;
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainContentComponent)
 };
 
 MainContentComponent::MainContentComponent()
 {
+	volumeslider.setSliderStyle(Slider::LinearVertical);
+	volumeslider.setTextBoxStyle(Slider::TextBoxAbove,true,100,20);
+	addAndMakeVisible(&volumeslider);
 	setSize (800, 600);
 	setAudioChannels (0, 2);
 }
@@ -55,6 +60,11 @@ void MainContentComponent::releaseResources()
 void MainContentComponent::getNextAudioBlock (const AudioSourceChannelInfo& bufferToFill)
 {
 	//Do nothing
+}
+
+void MainContentComponent::resized()
+{
+	volumeslider.setBounds(10,10,20,90);
 }
 
 Component* createMainContentComponent()     { return new MainContentComponent(); }
