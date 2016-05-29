@@ -10,7 +10,9 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 
-class MainContentComponent : public AudioAppComponent
+class MainContentComponent : 	public AudioAppComponent,
+								public ChangeListener,
+								public Button::Listener
 {
 public:
 	MainContentComponent();
@@ -23,13 +25,97 @@ public:
 	void getNextAudioBlock (const AudioSourceChannelInfo& bufferToFill);
 
 	void resized();
+
+	void changeListenerCallback (ChangeBroadcaster* source);
+
+	void buttonClicked (Button* button);
 private:
+	enum TransportState
+	{
+		Stopped,
+		Starting,
+		Playing,
+		Stopping
+	};
+
+	void changeState (TransportState newState)
+	{
+		if (state != newState)
+		{
+			state = newState;
+
+			switch (state)
+			{
+				case Stopped:
+					stopButton.setEnabled (false);
+					playButton.setEnabled (true);
+					transportSource.setPosition (0.0);
+					break;
+
+				case Starting:
+					playButton.setEnabled (false);
+					transportSource.start();
+					break;
+
+				case Playing:
+					stopButton.setEnabled (true);
+					break;
+
+				case Stopping:
+					transportSource.stop();
+					break;
+			}
+		}
+	}
+
+	void openButtonClicked()
+	{
+		FileChooser chooser ("Select a Wave file to play...",
+							 File::nonexistent,
+							 "*.wav");
+
+		if (chooser.browseForFileToOpen())
+		{
+			File file (chooser.getResult());
+			AudioFormatReader* reader = formatManager.createReaderFor (file);
+
+			if (reader != nullptr)
+			{
+				ScopedPointer<AudioFormatReaderSource> newSource = new AudioFormatReaderSource (reader, true); // [11]
+				transportSource.setSource (newSource, 0, nullptr, reader->sampleRate);                         // [12]
+				playButton.setEnabled (true);                                                                  // [13]
+				readerSource = newSource.release();                                                            // [14]
+			}
+		}
+	}
+
+	void playButtonClicked()
+	{
+		changeState (Starting);
+	}
+
+	void stopButtonClicked()
+	{
+		changeState (Stopping);
+	}
+
 	const size_t numberOfBands = 5;
+
 	Slider* sliderArray;
+
+    TextButton openButton;
+    TextButton playButton;
+    TextButton stopButton;
+
+    AudioFormatManager formatManager;
+    ScopedPointer<AudioFormatReaderSource> readerSource;
+    AudioTransportSource transportSource;
+    TransportState state;
+
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainContentComponent)
 };
 
-MainContentComponent::MainContentComponent()
+MainContentComponent::MainContentComponent() : state(Stopped)
 {
 	sliderArray = new Slider[numberOfBands];
 
@@ -40,8 +126,27 @@ MainContentComponent::MainContentComponent()
 		addAndMakeVisible(&sliderArray[i]);
 	}
 
+    addAndMakeVisible (&openButton);
+    openButton.setButtonText ("Open...");
+    openButton.addListener (this);
+
+    addAndMakeVisible (&playButton);
+    playButton.setButtonText ("Play");
+    playButton.addListener (this);
+    playButton.setColour (TextButton::buttonColourId, Colours::green);
+    playButton.setEnabled (false);
+
+    addAndMakeVisible (&stopButton);
+    stopButton.setButtonText ("Stop");
+    stopButton.addListener (this);
+    stopButton.setColour (TextButton::buttonColourId, Colours::red);
+    stopButton.setEnabled (false);
+
+    formatManager.registerBasicFormats();
+    transportSource.addChangeListener (this);
+
 	setSize (1000, 1000);
-	setAudioChannels (0, 2);
+	setAudioChannels (2, 2);
 }
 
 MainContentComponent::~MainContentComponent()
@@ -54,27 +159,54 @@ void MainContentComponent::prepareToPlay (int samplesPerBlock, double sampleRate
 {
     String message;
     message << "Preparing to play audio...\n";
-    message << " samplesPerBlockExpected = " << samplesPerBlock << "\n";
+    message << " samplesPerBlock = " << samplesPerBlock << "\n";
     message << " sampleRate = " << sampleRate << "\n";
 	message << "This is an extra message";
     Logger::getCurrentLogger()->writeToLog (message);
+
+    transportSource.prepareToPlay(samplesPerBlock,sampleRate);
 }
 
 void MainContentComponent::releaseResources()
 {
 	Logger::getCurrentLogger()->writeToLog ("Releasing audio resources");
+	transportSource.releaseResources();
+}
+
+void MainContentComponent::changeListenerCallback(ChangeBroadcaster* source)
+{
+	if (source == &transportSource)
+	{
+		if (transportSource.isPlaying())
+			changeState (Playing);
+		else
+			changeState (Stopped);
+	}
+}
+
+void MainContentComponent::buttonClicked (Button* button)
+{
+    if (button == &openButton)  openButtonClicked();
+    if (button == &playButton)  playButtonClicked();
+    if (button == &stopButton)  stopButtonClicked();
 }
 
 void MainContentComponent::getNextAudioBlock (const AudioSourceChannelInfo& bufferToFill)
 {
-	//Do nothing
+	if (readerSource == nullptr)
+	{
+		bufferToFill.clearActiveBufferRegion();
+		return;
+	}
+
+	transportSource.getNextAudioBlock (bufferToFill);
 }
 
 void MainContentComponent::resized()
 {
 	int windowWidth = getWidth();
 	int windowHeight = getHeight();
-	int x = windowWidth*0.1;
+	int x = windowWidth*0.05;
 	int y = windowHeight/2;
 	for(size_t i = 0; i < numberOfBands; ++i)
 	{
@@ -86,6 +218,11 @@ void MainContentComponent::resized()
 		slider_y = y;
 		sliderArray[i].setBounds(slider_x,slider_y,width,height);
 	}
+
+	openButton.setBounds (10, 10, getWidth() - 20, 20);
+	playButton.setBounds (10, 40, getWidth() - 20, 20);
+	stopButton.setBounds (10, 70, getWidth() - 20, 20);
+
 }
 
 Component* createMainContentComponent()     { return new MainContentComponent(); }
