@@ -26,7 +26,6 @@ public:
 private:
 	const size_t numberOfBands = 5;
 	Slider* sliderArray;
-	//Slider volumeslider;
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainContentComponent)
 };
 
@@ -41,12 +40,6 @@ MainContentComponent::MainContentComponent()
 		addAndMakeVisible(&sliderArray[i]);
 	}
 
-
-
-
-//	volumeslider.setSliderStyle(Slider::LinearVertical);
-//	volumeslider.setTextBoxStyle(Slider::TextBoxAbove,true,100,20);
-//	addAndMakeVisible(&volumeslider);
 	setSize (1000, 1000);
 	setAudioChannels (0, 2);
 }
@@ -79,23 +72,20 @@ void MainContentComponent::getNextAudioBlock (const AudioSourceChannelInfo& buff
 
 void MainContentComponent::resized()
 {
-	int x = 0;
-	int y = 0;
 	int windowWidth = getWidth();
 	int windowHeight = getHeight();
-
+	int x = windowWidth*0.1;
+	int y = windowHeight/2;
 	for(size_t i = 0; i < numberOfBands; ++i)
 	{
 		int slider_x,slider_y,width,height;
 
-		height = windowHeight;
-		width = windowWidth/numberOfBands;
-		slider_x = i*width;
+		height = windowHeight-y;
+		width = (windowWidth-2*x)/numberOfBands;
+		slider_x = x+i*width;
 		slider_y = y;
 		sliderArray[i].setBounds(slider_x,slider_y,width,height);
 	}
-
-	//volumeslider.setBounds(x,y,windowWidth-x,windowHeight-y);
 }
 
 Component* createMainContentComponent()     { return new MainContentComponent(); }
