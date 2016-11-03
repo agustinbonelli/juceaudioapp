@@ -30,41 +30,57 @@ public:
 
 	void buttonClicked (Button* button);
 private:
+
+	typedef void (MainContentComponent::*ActionFunction)();
+
 	enum TransportState
 	{
-		Stopped,
+		Stopped = 0,
 		Starting,
 		Playing,
-		Stopping
+		Stopping,
+		MaxTransportState,
+	};
+
+
+	void stoppedAction()
+	{
+		stopButton.setEnabled (false);
+		playButton.setEnabled (true);
+		transportSource.setPosition (0.0);
+	}
+
+	void startingAction()
+	{
+		playButton.setEnabled (false);
+		transportSource.start();
+	}
+
+	void playingAction()
+	{
+		stopButton.setEnabled (true);
+	}
+
+	void stoppingAction()
+	{
+		transportSource.stop();
+	}
+
+	ActionFunction transitionAction[MaxTransportState] =
+	{
+			&MainContentComponent::stoppedAction,
+			&MainContentComponent::startingAction,
+			&MainContentComponent::playingAction,
+			&MainContentComponent::stoppingAction
 	};
 
 	void changeState (TransportState newState)
 	{
-		if (state != newState)
+		if (state != newState && newState < MaxTransportState)
 		{
 			state = newState;
 
-			switch (state)
-			{
-				case Stopped:
-					stopButton.setEnabled (false);
-					playButton.setEnabled (true);
-					transportSource.setPosition (0.0);
-					break;
-
-				case Starting:
-					playButton.setEnabled (false);
-					transportSource.start();
-					break;
-
-				case Playing:
-					stopButton.setEnabled (true);
-					break;
-
-				case Stopping:
-					transportSource.stop();
-					break;
-			}
+			(this->*transitionAction[state])();
 		}
 	}
 
@@ -99,7 +115,7 @@ private:
 		changeState (Stopping);
 	}
 
-	const size_t numberOfBands = 5;
+	static const size_t numberOfBands = 5;
 
 	Slider* sliderArray;
 
